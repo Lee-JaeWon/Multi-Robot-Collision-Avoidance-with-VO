@@ -1,0 +1,8 @@
+<launch>
+    <arg name="namespace" default="tb3_0"/>
+
+    <group ns="$(arg namespace)">
+            <include file="$(find turtlebot3_teleop)/launch/turtlebot3_teleop_key.launch">
+            </include>
+    </group>
+</launch>

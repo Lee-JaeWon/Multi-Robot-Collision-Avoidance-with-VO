@@ -1,0 +1,145 @@
+<launch>
+
+    <!-- Arguments : turtlebots -->
+    <arg name="first_tb3" default="tb3_0"/>
+    <arg name="second_tb3" default="tb3_1"/>
+    <arg name="third_tb3" default="tb3_2"/>
+
+    <!-- Command Line Arguments -->
+    <arg name="tb3_0_init_x" default="0.0"/>
+    <arg name="tb3_0_init_y" default="0.0"/>
+    <arg name="tb3_0_init_a" default="0.0"/>
+
+    <arg name="tb3_1_init_x" default="1.0"/>
+    <arg name="tb3_1_init_y" default="0.0"/>
+    <arg name="tb3_1_init_a" default="0.0"/>
+
+    <arg name="tb3_2_init_x" default="2.0"/>
+    <arg name="tb3_2_init_y" default="0.0"/>
+    <arg name="tb3_2_init_a" default="0.0"/>
+
+    <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+    <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro'" />
+
+    <arg name="map_file" default="$(find multi_robot_vo)/map/mapele.yaml"/>
+
+    <!-- Map server -->
+    <node pkg="map_server" name="map_server" type="map_server" args="$(arg map_file)"/>
+
+    <!-- First Robot -->
+    <group ns="$(arg first_tb3)">
+
+        <!-- Loads robot_description to parameter server from URDF file-->
+        <param name="robot_description" command="$(arg urdf_file)" />
+
+        <!-- Robot State Publisher -->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" type="double" value="50.0" />
+            <param name="tf_prefix" value="tb3_0"/>
+        </node>
+
+        <!-- AMCL -->
+        <node pkg="amcl" type="amcl" name="amcl">
+            <!-- Load default parameters for turtlebot -->
+            <rosparam file="$(find turtlebot3_nps)/param/amcl_params.yaml" command="load" />
+            <param name="initial_pose_x" value="$(arg tb3_0_init_x)"/>
+            <param name="initial_pose_y" value="$(arg tb3_0_init_y)"/>
+            <param name="initial_pose_a" value="$(arg tb3_0_init_a)"/>
+
+            <param name="odom_frame_id"  value="tb3_0/odom"/>
+            <param name="base_frame_id"  value="tb3_0/base_footprint"/>
+
+            <!-- Use the single map server -->
+            <remap from="static_map" to="/static_map"/>
+        </node>
+    </group>
+
+    <!-- Second Robot -->
+    <group ns="$(arg second_tb3)">
+
+        <!-- Loads robot_description to parameter server from URDF file-->
+        <param name="robot_description" command="$(arg urdf_file)" />
+
+        <!-- Robot State Publisher -->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" type="double" value="50.0" />
+            <param name="tf_prefix" value="tb3_1"/>
+        </node>
+
+        <!-- AMCL -->
+        <node pkg="amcl" type="amcl" name="amcl">
+            <!-- Load default parameters for turtlebot -->
+            <rosparam file="$(find turtlebot3_nps)/param/amcl_params.yaml" command="load" />
+            <param name="initial_pose_x" value="$(arg tb3_1_init_x)"/>
+            <param name="initial_pose_y" value="$(arg tb3_1_init_y)"/>
+            <param name="initial_pose_a" value="$(arg tb3_1_init_a)"/>
+
+            <param name="odom_frame_id"  value="tb3_1/odom"/>
+            <param name="base_frame_id"  value="tb3_1/base_footprint"/>
+
+            <!-- Use the single map server -->
+            <remap from="static_map" to="/static_map"/>
+
+        </node>
+    </group>
+
+    <!-- Second Robot -->
+    <group ns="$(arg third_tb3)">
+
+        <!-- Loads robot_description to parameter server from URDF file-->
+        <param name="robot_description" command="$(arg urdf_file)" />
+
+        <!-- Robot State Publisher -->
+        <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+            <param name="publish_frequency" type="double" value="50.0" />
+            <param name="tf_prefix" value="tb3_2"/>
+        </node>
+
+        <!-- AMCL -->
+        <node pkg="amcl" type="amcl" name="amcl">
+            <!-- Load default parameters for turtlebot -->
+            <rosparam file="$(find turtlebot3_nps)/param/amcl_params.yaml" command="load" />
+            <param name="initial_pose_x" value="$(arg tb3_2_init_x)"/>
+            <param name="initial_pose_y" value="$(arg tb3_2_init_y)"/>
+            <param name="initial_pose_a" value="$(arg tb3_2_init_a)"/>
+
+            <param name="odom_frame_id"  value="tb3_2/odom"/>
+            <param name="base_frame_id"  value="tb3_2/base_footprint"/>
+
+            <!-- Use the single map server -->
+            <remap from="static_map" to="/static_map"/>
+        </node>
+    </group>
+
+    <!-- get global path : Python Script -->
+    <node name="path1" pkg="multi_robot_vo" type="get_global_path.py" output="screen">
+        <param name="robot" value="$(arg first_tb3)"/>
+    </node>
+    <node name="path2" pkg="multi_robot_vo" type="get_global_path.py" output="screen">
+        <param name="robot" value="$(arg second_tb3)"/>
+    </node>
+    <node name="path3" pkg="multi_robot_vo" type="get_global_path.py" output="screen">
+        <param name="robot" value="$(arg third_tb3)"/>
+    </node>
+
+    <!-- get global position : Python Script -->
+    <node name="global_position" pkg="multi_robot_vo" type="get_global_position.py" output="screen">
+        <param name="robot_0" value="$(arg first_tb3)" />
+        <param name="robot_1" value="$(arg second_tb3)" />
+        <param name="robot_2" value="$(arg third_tb3)" />
+    </node>
+
+    <!-- move_base -->
+    <include file="$(find multi_robot_vo)/launch/move_base_three.launch">
+        <arg name="robot_0" value="$(arg first_tb3)" />
+        <arg name="robot_1" value="$(arg second_tb3)" />
+        <arg name="robot_2" value="$(arg third_tb3)" />
+    </include>
+
+    <include file="$(find astar)/launch/astar.launch">
+    </include>
+
+    <node pkg="rviz" type="rviz" name="rviz" required="true"
+          args="-d $(find multi_robot_vo)/rviz/nps.rviz"/>
+
+</launch>
