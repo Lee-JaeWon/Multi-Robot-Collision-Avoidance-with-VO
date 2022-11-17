@@ -1,0 +1,32 @@
+<launch>
+
+    <!-- Arguments : turtlebots -->
+    <arg name="first_tb3" default="0"/>
+    <arg name="second_tb3" default="1"/>
+    <arg name="third_tb3" default="2"/>
+
+    <!-- ################ start astar node ################ -->
+    <node pkg="astar" type="astar" name="astar_tb3_0" output="screen">
+        <param name="Euclidean" value="true"/>
+        <param name="OccupyThresh" value="-1"/>
+        <param name="InflateRadius" value="0.25"/>
+        <param name="rate" value="10"/>
+        <param name="namespace" value="$(arg first_tb3)"/>
+    </node>
+
+    <node pkg="astar" type="astar" name="astar_tb3_1" output="screen">
+        <param name="Euclidean" value="true"/>
+        <param name="OccupyThresh" value="-1"/>
+        <param name="InflateRadius" value="0.25"/>
+        <param name="rate" value="10"/>
+        <param name="namespace" value="$(arg second_tb3)"/>
+    </node>
+
+    <node pkg="astar" type="astar" name="astar_tb3_2" output="screen">
+        <param name="Euclidean" value="true"/>
+        <param name="OccupyThresh" value="-1"/>
+        <param name="InflateRadius" value="0.25"/>
+        <param name="rate" value="10"/>
+        <param name="namespace" value="$(arg third_tb3)"/>
+    </node>
+</launch>
