@@ -74,12 +74,12 @@ class get_global_map():
         # Robot Spec
         self.num_robots = 3
         # After new Mapping, Change This
-        self.X = [[23.0, 42.0], [52.0, 42.0], [44.0, 94.0]]
+        self.X = [[33.0, 37.0], [36.0, 55.0], [80.0, 34.0]]
         self.P = [[0.0, 0.0] for _ in range(self.num_robots)]
         self.temp_V = [[0.0, 0.0] for _ in range(self.num_robots)]
         self.V = [[0, 0] for _ in range(3)]
         self.ws_model = dict()
-        self.ws_model['robot_radius'] = 4.5
+        self.ws_model['robot_radius'] = 4.0
 
         # Robot Data Subscriber
         # map
@@ -131,7 +131,7 @@ class get_global_map():
         self.goal_patch = [None]*self.num_robots
 
         # For Velocity Obstacle
-        self.vmax = [0.07 for _ in range(self.num_robots)]
+        self.vmax = [0.05 for _ in range(self.num_robots)]
         self.V_des = [[0.0, 0.0] for _ in range(self.num_robots)]
         self._VO = VO(VMAX=self.vmax)
         self.res_V = [[0.0, 0.0] for _ in range(self.num_robots)]
@@ -144,7 +144,7 @@ class get_global_map():
         self.PI = pi
 
         # Goal for VO
-        self.goal = [[27.0, 80.0], [42.0, 76.0], [44.0, 57.0]]
+        self.goal = [[83.0, 53.0], [80.0, 31.0], [39.0, 57.0]]
         self.way_point = [[0.0, 0.0] for _ in range(self.num_robots)]
 
         # For translate vel vector to v,w
@@ -154,6 +154,8 @@ class get_global_map():
         self.tb3_0_twist = Twist()
         self.tb3_1_twist = Twist()
         self.tb3_2_twist = Twist()
+
+        self.reach = [False, False, False]
 
     # Map
     def mapCallback(self, data):
@@ -325,7 +327,7 @@ class get_global_map():
                                        self.starty)/resolution
 
                 # Way Point
-                self.sel_way_point = 5
+                self.sel_way_point = 3
                 if self.path_1_x is not None and self.path_1_y is not None:
                     if len(self.path_1_x) > 6:
                         self.way_point[0][0] = (self.path_1_x[self.sel_way_point] -
@@ -381,7 +383,7 @@ class get_global_map():
 
                 for i in range(self.num_robots):
                     self.robot_patch[i] = patches.Circle((self.X[i][0], self.X[i][1]),
-                                                         radius=3.0,
+                                                         self.ws_model['robot_radius'],
                                                          facecolor=cmap(i),
                                                          edgecolor='black',
                                                          linewidth=1.5,
@@ -439,11 +441,13 @@ class get_global_map():
                     
                     for i in range(self.num_robots):
                         if self.res_V[i][0] == 0.0 and self.res_V[i][1] == 0.0:
+                            print(f"[Warning] : tb3_{i} has been reached to goal")
                             self.res_V[i][0] = 1e-5
                             self.res_V[i][1] = 1e-5
-
-                    print(self.res_V)
-
+                            self.reach[i] = True
+                        else:
+                            self.reach[i] = False
+                    print(self.reach)
                     for i in range(self.num_robots):
                         self.ip[i], self.degree[i] = self.math.calc_theta(
                             self.math.unit_vector(self.res_V[i]), self.P[i])
@@ -457,7 +461,7 @@ class get_global_map():
                 self.make_PWCM()
 
                 if self.way_point[0][0] != 0.0 and self.way_point[0][1] != 0.0:
-                    self.activate(self.degree, self.op, self.res_V)
+                    self.activate(self.degree, self.op, self.res_V, self.reach)
                 # print(f"Elapsed Time(While Loop) : {time.time() - start_time}")
 
     def get_cmap(self, N):
@@ -472,36 +476,56 @@ class get_global_map():
     def run(self):
         self.get_data()
 
-    def activate(self, degree, op, res_V):
+    def activate(self, degree, op, res_V, reach):
+
+        angle_gain = 170
 
         # Way Point가 설정되었다면 linear 부여
         if self.way_point[0][0] != 0.0 and self.way_point[0][1] != 0.0:
             self.tb3_0_twist.linear.x = sqrt(res_V[0][0]**2 + res_V[0][1]**2)
         # Way Point가 설정되지 않았다면 linear 부여 X
+        elif reach[0] == True:
+            self.tb3_0_twist.linear.x = 0.0
         else:
             self.tb3_0_twist.linear.x = 0.0
+
         if self.way_point[1][0] != 0.0 and self.way_point[1][1] != 0.0:
             self.tb3_1_twist.linear.x = sqrt(res_V[1][0]**2 + res_V[1][1]**2)
+        elif reach[1] == True:
+            self.tb3_1_twist.linear.x = 0.0
         else:
             self.tb3_1_twist.linear.x = 0.0
+
         if self.way_point[2][0] != 0.0 and self.way_point[2][1] != 0.0:
             self.tb3_2_twist.linear.x = sqrt(res_V[1][0]**2 + res_V[1][1]**2)
+        elif reach[2] == True:
+            self.tb3_2_twist.linear.x = 0.0
         else:
             self.tb3_2_twist.linear.x = 0.0
 
-        angle_gain = 160
-        if op[0] > 0:
-            self.tb3_0_twist.angular.z = -(degree[0]/angle_gain)
+        if reach[0] == True:
+            self.tb3_0_twist.angular.z = 0.0
         else:
-            self.tb3_0_twist.angular.z = degree[0]/angle_gain
-        if op[1] > 0:
-            self.tb3_1_twist.angular.z = -(degree[1]/angle_gain)
+            if op[0] > 0:
+                    self.tb3_0_twist.angular.z = -(degree[0]/angle_gain)
+            else:
+                self.tb3_0_twist.angular.z = degree[0]/angle_gain
+
+        if reach[1] == True:
+            self.tb3_1_twist.angular.z = 0.0
         else:
-            self.tb3_1_twist.angular.z = degree[1]/angle_gain
-        if op[2] > 0:
-            self.tb3_2_twist.angular.z = -(degree[2]/angle_gain)
+            if op[1] > 0:
+                    self.tb3_1_twist.angular.z = -(degree[1]/angle_gain)
+            else:
+                self.tb3_1_twist.angular.z = degree[1]/angle_gain
+
+        if reach[2] == True:
+            self.tb3_2_twist.angular.z = 0.0
         else:
-            self.tb3_2_twist.angular.z = degree[2]/angle_gain
+            if op[2] > 0:
+                    self.tb3_2_twist.angular.z = -(degree[2]/angle_gain)
+            else:
+                self.tb3_2_twist.angular.z = degree[2]/angle_gain
 
         self.tb0_cmd_vel.publish(self.tb3_0_twist)
         self.tb1_cmd_vel.publish(self.tb3_1_twist)
@@ -537,7 +561,7 @@ class VO():
             self.V_des.append(norm_dif_x[:])
 
             # When the robot reach to final goal, robot stop.
-            if self.reach(X[i], goal[i], 1):
+            if self.reach(X[i], goal[i], 2.5):
                 self.V_des[i][0] = 0.0
                 self.V_des[i][1] = 0.0
         return self.V_des
@@ -559,7 +583,9 @@ class VO():
                     pB = [X[j][0], X[j][1]]
 
                     # For VO
-                    transl_vB_vA = [pA[0]+vB[0], pA[1]+vB[1]]
+                    # transl_vB_vA = [pA[0]+vB[0], pA[1]+vB[1]]
+                    # For RVO
+                    transl_vB_vA = [pA[0]+0.5*(vB[0]+vA[0]), pA[1]+0.5*(vB[1]+vA[1])]
 
                     # For Visualization
                     mat_obj.plot([X[i][0], X[j][0]], [
