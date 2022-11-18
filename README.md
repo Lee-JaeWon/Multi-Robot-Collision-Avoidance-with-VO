@@ -8,6 +8,10 @@ VO can be used to find the speed closest to the desired speed but not to collide
 ## Video(temp)
 [![Video Label](https://img.youtube.com/vi/IEfeJPWc0WE/0.jpg)](https://youtu.be/IEfeJPWc0WE)
 
+## Limitation
+This algorithm may require sufficient space. In the narrow space, robots can collide with the wall.<br>
+This is because the result of VO(velocity vector) may not follow Path Planning.
+
 ## Reference
 * [MengGuo : RVO for Multi-agent Systems](https://github.com/MengGuo/RVO_Py_MAS)<br>
 : This is a simulation for the Holonomic multi-robot system. This repository is implemented with the help of this.
