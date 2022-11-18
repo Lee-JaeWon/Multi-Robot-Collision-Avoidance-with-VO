@@ -10,7 +10,8 @@ VO can be used to find the speed closest to the desired speed but not to collide
 
 ## Limitation
 This algorithm may require sufficient space. In the narrow space, robots can collide with the wall.<br>
-This is because the result of VO(velocity vector) may not follow Path Planning.
+This is because the result of VO(velocity vector) may not follow Path Planning.<br><br>
+If dynamic object detection is also performed through LiDAR, human interaction is possible, but this is a different problem.
 
 ## Reference
 * [MengGuo : RVO for Multi-agent Systems](https://github.com/MengGuo/RVO_Py_MAS)<br>
